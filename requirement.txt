@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pymilvus==2.4.0
+openai
+pypdf
+python-docx
+Pillow
+psycopg2-binary
+requests
+python-multipart
+pydantic
+pydantic-settings

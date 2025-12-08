@@ -1,0 +1,28 @@
+
+version: "3.8"
+services:
+  api:
+    build: .
+    container_name: rag_api
+    ports:
+      - "8050:8050"
+    depends_on:
+      - milvus
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: jabali
+      POSTGRES_PASSWORD: jabali
+      POSTGRES_DB: rag_stats
+    ports:
+      - "5432:5432"
+
+  milvus:
+    image: milvusdb/milvus:2.4.0
+    environment:
+      ETCD_USE_EMBEDDED: "true"
+      MINIO_USE_EMBEDDED: "true"
+    ports:
+      - "19530:19530"
