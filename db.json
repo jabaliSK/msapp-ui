@@ -1,1 +1,58 @@
-{ "timestamp": "2025-01-15T14:32:10Z", "location": {"city": "San Francisco","coordinates": {"lat": 37.7749,"lng": -122.4194} }, "parking_lots": [{"id": "PARK-001","name": "Market Street Garage","address": "833 Mission St, San Francisco, CA","coordinates": {"lat": 37.7841,"lng": -122.4075},"capacity": 500,"available_spaces": 132,"status": "open","pricing": {"hourly": 4.50,"daily_max": 28.00,"currency": "USD"},"restrictions": {"max_height_meters": 2.0,"ev_charging_available": true,"handicap_spots": 12},"last_updated": "2025-01-15T14:31:45Z"},{"id": "PARK-002","name": "Embarcadero Parking Lot","address": "Pier 19, San Francisco, CA","coordinates": {"lat": 37.8020,"lng": -122.3980},"capacity": 220,"available_spaces": 0,"status": "full","pricing": {"hourly": 6.00,"daily_max": 40.00,"currency": "USD"},"restrictions": {"max_height_meters": 3.0,"ev_charging_available": False,"handicap_spots": 5},"last_updated": "2025-01-15T14:30:50Z"} ] }
+{
+  "timestamp": "2025-01-15T14:32:10Z",
+  "location": {
+    "city": "San Francisco",
+    "coordinates": {
+      "lat": 37.7749,
+      "lng": -122.4194
+    }
+  },
+  "parking_lots": [
+    {
+      "id": "PARK-001",
+      "name": "Market Street Garage",
+      "address": "833 Mission St, San Francisco, CA",
+      "coordinates": {
+        "lat": 37.7841,
+        "lng": -122.4075
+      },
+      "capacity": 500,
+      "available_spaces": 132,
+      "status": "open",
+      "pricing": {
+        "hourly": 4.50,
+        "daily_max": 28.00,
+        "currency": "USD"
+      },
+      "restrictions": {
+        "max_height_meters": 2.0,
+        "ev_charging_available": true,
+        "handicap_spots": 12
+      },
+      "last_updated": "2025-01-15T14:31:45Z"
+    },
+    {
+      "id": "PARK-002",
+      "name": "Embarcadero Parking Lot",
+      "address": "Pier 19, San Francisco, CA",
+      "coordinates": {
+        "lat": 37.8020,
+        "lng": -122.3980
+      },
+      "capacity": 220,
+      "available_spaces": 0,
+      "status": "full",
+      "pricing": {
+        "hourly": 6.00,
+        "daily_max": 40.00,
+        "currency": "USD"
+      },
+      "restrictions": {
+        "max_height_meters": 3.0,
+        "ev_charging_available": false,
+        "handicap_spots": 5
+      },
+      "last_updated": "2025-01-15T14:30:50Z"
+    }
+  ]
+}
