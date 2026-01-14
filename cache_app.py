@@ -447,93 +447,6 @@ class ConfigUpdate(BaseModel):
 app = FastAPI(title="Qwen Multi-Modal RAG API", on_startup=[init_db])
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-
-@app.get("/stats")
-def get_dashboard_stats():
-    """
-    Aggregates statistics for the dashboard:
-    1. System Totals (Docs, Chunks, Storage)
-    2. Content Distribution (Pie Chart)
-    3. Ingestion Activity (Bar Chart - Last 7 Days)
-    """
-    try:
-        # 1. System Totals
-        pipeline_totals = [
-            {"$group": {
-                "_id": None, 
-                "total_docs": {"$sum": 1},
-                "total_size": {"$sum": "$file_size"},
-                "total_chunks": {"$sum": "$chunk_count"}
-            }}
-        ]
-        totals_res = list(mongo_coll.aggregate(pipeline_totals))
-        stats = {
-            "totalDocuments": 0,
-            "storageUsed": 0,
-            "totalChunks": 0
-        }
-        if totals_res:
-            res = totals_res[0]
-            stats["totalDocuments"] = res.get("total_docs", 0)
-            stats["storageUsed"] = res.get("total_size", 0)
-            stats["totalChunks"] = res.get("total_chunks", 0)
-
-        # 2. Content Distribution (Pie Data)
-        pipeline_dist = [
-            {"$group": {"_id": "$file_type", "value": {"$sum": 1}}}
-        ]
-        dist_res = list(mongo_coll.aggregate(pipeline_dist))
-        # Format for Recharts: [{name: 'PDF', value: 10}, ...]
-        content_distribution = [{"name": (d["_id"] or "UNK"), "value": d["value"]} for d in dist_res]
-
-        # 3. Ingestion Activity (Last 7 Days)
-        # We need to fill in missing days with 0, so we generate the dates in Python first
-        end_date = datetime.utcnow()
-        activity_map = {}
-        for i in range(6, -1, -1):
-            d = (end_date - timedelta(days=i)).strftime("%Y-%m-%d")
-            activity_map[d] = {"docs": 0, "vectors": 0}
-
-        # MongoDB Aggregation for activity
-        start_date = end_date - timedelta(days=7)
-        pipeline_activity = [
-            {"$match": {"upload_date": {"$gte": start_date}}},
-            {"$group": {
-                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$upload_date"}},
-                "docs": {"$sum": 1},
-                "vectors": {"$sum": "$chunk_count"}
-            }}
-        ]
-        activity_res = list(mongo_coll.aggregate(pipeline_activity))
-        
-        for entry in activity_res:
-            date_key = entry["_id"]
-            if date_key in activity_map:
-                activity_map[date_key]["docs"] = entry["docs"]
-                activity_map[date_key]["vectors"] = entry["vectors"]
-
-        # Convert map to list sorted by date
-        ingestion_activity = []
-        for date_str in sorted(activity_map.keys()):
-            # Format name as "Mon", "Tue" or Short Date for the chart
-            day_name = datetime.strptime(date_str, "%Y-%m-%d").strftime("%a")
-            ingestion_activity.append({
-                "name": day_name, 
-                "docs": activity_map[date_str]["docs"],
-                "vectors": activity_map[date_str]["vectors"]
-            })
-
-        return {
-            "stats": stats,
-            "distribution": content_distribution,
-            "activity": ingestion_activity
-        }
-
-    except Exception as e:
-        print(f"Stats Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.get("/logs", response_model=List[LogEntry])
 def get_logs(limit: int = 100, hours: Optional[int] = None):
     conn = get_db_connection()
@@ -654,57 +567,12 @@ def delete_file(file_id: str):
         return {"status": "deleted", "id": file_id}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.delete("/files/all/{filename}")
-def delete_all_file_versions(filename: str):
-    """
-    Deletes all versions of a specific filename from MongoDB and Milvus.
-    """
-    try:
-        # 1. Find all versions
-        docs = list(mongo_coll.find({"filename": filename}))
-        if not docs:
-            raise HTTPException(status_code=404, detail="File not found")
-
-        deleted_count = 0
-        for doc in docs:
-            # Remove from Milvus
-            version = doc.get("version", 1)
-            versioned_name = f"{filename} (v{version})"
-            chunk_hashes = doc.get("chunk_hashes", [])
-            
-            # (Reuse existing Milvus cleanup logic)
-            for c_hash in chunk_hashes:
-                try:
-                    res = milvus.query(collection_name=COLLECTION_NAME, filter=f'chunk_md5 == "{c_hash}"', output_fields=["id", "filenames"])
-                    if res:
-                        entity = res[0]
-                        curr = entity.get("filenames", [])
-                        if isinstance(curr, str): curr = [curr]
-                        if versioned_name in curr:
-                            curr.remove(versioned_name)
-                            if not curr: 
-                                milvus.delete(collection_name=COLLECTION_NAME, ids=[entity["id"]])
-                            else: 
-                                milvus.upsert(collection_name=COLLECTION_NAME, data=[{**entity, "filenames": curr}])
-                except Exception: pass
-            
-            # Remove from Mongo
-            mongo_coll.delete_one({"_id": doc["_id"]})
-            deleted_count += 1
-            
-        return {"status": "deleted", "count": deleted_count, "filename": filename}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/models")
 def list_models():
     mods = {}
-    for port in itertools.chain(range(8000, 8012), range(8100, 8110)):
+    for port in itertools.chain(range(8000, 8012), [8100, 8200]):
         try:
             m = requests.get(TOOL_HOST_IP+f":{port}/v1/models", timeout=.2).json()["data"][0]["id"]
-            if(m in mods.keys()):
-                m = "dock_" + m
             mods[m] = port
         except: pass 
     return(mods)
