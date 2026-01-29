@@ -1,0 +1,25 @@
+[Unit]
+Description=vLLM Service - Qwen3Guard
+After=network.target
+
+[Service]
+Type=simple
+
+User=root
+Group=root
+
+# 2. Set environment variables for the VENV and CUDA
+Environment="CUDA_VISIBLE_DEVICES=0"
+Environment="VIRTUAL_ENV=/home/jabali/vllm_testing/vllmvenv/bin/vllm"
+Environment="PATH=/home/jabali/vllm_testing/vllmvenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# 3. Point directly to the vllm binary inside the venv
+ExecStart=/home/jabali/vllm_testing/vllmvenv/bin/vllm serve Qwen/Qwen3Guard-Gen-0.6B --host 0.0.0.0 --port 8001 --gpu-memory-utilization 0.1 --max-model-len 23000 --trust-remote-code
+
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/vllm/qwen3guard.log
+StandardError=append:/var/log/vllm/qwen3guard.log
+
+[Install]
+WantedBy=multi-user.target

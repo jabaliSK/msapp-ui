@@ -1,0 +1,25 @@
+[Unit]
+Description=vLLM Service - qwen3vl
+After=network.target
+
+[Service]
+Type=simple
+
+User=root
+Group=root
+
+# 2. Set environment variables for the VENV and CUDA
+Environment="CUDA_VISIBLE_DEVICES=0"
+Environment="VIRTUAL_ENV=/home/jabali/vllm_testing/vllmvenv/bin/vllm"
+Environment="PATH=/home/jabali/vllm_testing/vllmvenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# 3. Point directly to the vllm binary inside the venv
+ExecStart=/home/jabali/vllm_testing/vllmvenv/bin/vllm serve Qwen/Qwen3-VL-8B-Instruct-FP8 --host 0.0.0.0 --port 8003 --gpu-memory-utilization 0.2 --max-model-len 4096 --limit-mm-per-prompt "{\"image\": 1, \"video\": 0}" --mm-processor-cache-gb 0 --trust-remote-code --tensor-parallel-size 1
+
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/vllm/qwen3vl.log
+StandardError=append:/var/log/vllm/qwen3vl.log
+
+[Install]
+WantedBy=multi-user.target

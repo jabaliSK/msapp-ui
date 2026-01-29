@@ -1,0 +1,5 @@
+{
+  "name": "Msheireb Smart CMS",
+  "description": "A next-gen Content Management System dashboard simulating Couchbase (Metadata) and Milvus (Vector) synchronization with an architectural aesthetic inspired by Msheireb Downtown Doha.",
+  "requestFramePermissions": []
+}

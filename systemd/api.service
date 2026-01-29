@@ -1,0 +1,25 @@
+[Unit]
+Description=App Rest API
+After=network.target
+
+[Service]
+Type=simple
+
+# 1. CHANGE THIS to your username (e.g., ubuntu, ec2-user, azureuser)
+User=root
+Group=root
+
+# 2. Set environment variables for the VENV and CUDA
+Environment="VIRTUAL_ENV=/home/jabali/stats_app/stats/bin/activate"
+Environment="PATH=/home/jabali/stats_app/stats/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# 3. Point directly to the vllm binary inside the venv
+ExecStart=/home/jabali/stats_app/stats/bin/python /home/jabali/stats_app/cache_app.py
+
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/vllm/api.log
+StandardError=append:/var/log/vllm/api.log
+
+[Install]
+WantedBy=multi-user.target

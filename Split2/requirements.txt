@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+pymilvus
+openai
+requests
+psycopg2-binary
+pymongo
+pypdf
+python-docx
+pillow
+python-multipart
+beautifulsoup4
+lxml
+reportlab

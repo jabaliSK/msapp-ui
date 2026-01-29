@@ -29,11 +29,10 @@ const BenchmarkPage = () => {
   const handleDownloadCSV = () => {
     if (results.length === 0) return;
 
-    // Added Model Columns
     const headers = [
       "ID", "Query", "Status", "Response", "Sources", "Safety", 
-      "LLM Model", "Embed Model", "Guard Model",
-      "Server Total (s)", "LLM Gen (s)", "Retrieval (s)", "Embed (s)", 
+      "LLM Model", "Embed Model", "Rerank Model", "Guard Model",
+      "Server Total (s)", "LLM Gen (s)", "Retrieval (s)", "Rerank (s)", "Embed (s)", 
       "Input Guard (s)", "Output Guard (s)", "Client Latency (s)"
     ];
 
@@ -49,12 +48,14 @@ const BenchmarkPage = () => {
         safeResponse,
         safeSources,
         row.safety,
-        row.llmModel, // New
-        row.embedModel, // New
-        row.guardModel, // New
+        row.llmModel, 
+        row.embedModel, 
+        row.rerankModel, // Added
+        row.guardModel, 
         row.serverTotal,
         row.llmTime,
         row.retrievalTime,
+        row.rerankTime, // Added
         row.embedTime,
         row.inputGuardTime,
         row.outputGuardTime,
@@ -105,14 +106,16 @@ const BenchmarkPage = () => {
             response: data.response,
             sources: data.sources.join(", "),
             safety: data.safety_check,
-            // Capture Model IDs
+            
             llmModel: data.llm_model,
             embedModel: data.embed_model,
+            rerankModel: data.rerank_model, // Capture Rerank Model
             guardModel: data.guard_model,
             
             serverTotal: data.timings.total_sec,
             llmTime: data.timings.llm_generation_sec,
             retrievalTime: data.timings.retrieval_sec,
+            rerankTime: data.timings.reranking_sec || 0, // Capture Rerank Time
             embedTime: data.timings.embedding_sec,
             inputGuardTime: data.timings.input_guardrail_sec,
             outputGuardTime: data.timings.output_guardrail_sec,
@@ -133,10 +136,11 @@ const BenchmarkPage = () => {
             response: "Error: " + error.message,
             sources: "-",
             safety: "-",
-            llmModel: "-", embedModel: "-", guardModel: "-",
+            llmModel: "-", embedModel: "-", rerankModel: "-", guardModel: "-",
             serverTotal: 0,
             llmTime: 0,
             retrievalTime: 0,
+            rerankTime: 0,
             embedTime: 0,
             inputGuardTime: 0,
             outputGuardTime: 0,
@@ -240,10 +244,11 @@ const BenchmarkPage = () => {
                 <th className="px-4 py-3 border-b">Status</th>
                 <th className="px-4 py-3 border-b">LLM Model</th>
                 <th className="px-4 py-3 border-b">Embed Model</th>
-                <th className="px-4 py-3 border-b">Guard Model</th>
+                <th className="px-4 py-3 border-b">Rerank Model</th> {/* Added */}
                 <th className="px-4 py-3 border-b bg-indigo-50 text-indigo-800">Total (S)</th>
                 <th className="px-4 py-3 border-b">LLM Gen</th>
                 <th className="px-4 py-3 border-b">Retrieval</th>
+                <th className="px-4 py-3 border-b">Rerank</th> {/* Added */}
                 <th className="px-4 py-3 border-b">Embed</th>
                 <th className="px-4 py-3 border-b">In Guard</th>
                 <th className="px-4 py-3 border-b">Out Guard</th>
@@ -253,7 +258,7 @@ const BenchmarkPage = () => {
             <tbody className="divide-y divide-slate-100">
               {results.length === 0 ? (
                 <tr>
-                  <td colSpan="13" className="px-6 py-20 text-center text-slate-400">
+                  <td colSpan="14" className="px-6 py-20 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <Clock className="w-10 h-10 opacity-20" />
                       <p>Upload a .txt file to begin benchmarking</p>
@@ -272,11 +277,12 @@ const BenchmarkPage = () => {
                     </td>
                     <td className="px-4 py-3 max-w-[120px] truncate text-xs text-slate-500" title={row.llmModel}>{row.llmModel}</td>
                     <td className="px-4 py-3 max-w-[120px] truncate text-xs text-slate-500" title={row.embedModel}>{row.embedModel}</td>
-                    <td className="px-4 py-3 max-w-[120px] truncate text-xs text-slate-500" title={row.guardModel}>{row.guardModel}</td>
+                    <td className="px-4 py-3 max-w-[120px] truncate text-xs text-slate-500" title={row.rerankModel}>{row.rerankModel}</td>
                     
                     <td className="px-4 py-3 font-mono bg-indigo-50/50 text-indigo-700 font-bold">{row.serverTotal}s</td>
                     <td className="px-4 py-3 font-mono text-slate-500">{row.llmTime}s</td>
                     <td className="px-4 py-3 font-mono text-slate-500">{row.retrievalTime}s</td>
+                    <td className="px-4 py-3 font-mono text-slate-500">{row.rerankTime}s</td>
                     <td className="px-4 py-3 font-mono text-slate-500">{row.embedTime}s</td>
                     <td className="px-4 py-3 font-mono text-slate-500">{row.inputGuardTime}s</td>
                     <td className="px-4 py-3 font-mono text-slate-500">{row.outputGuardTime}s</td>

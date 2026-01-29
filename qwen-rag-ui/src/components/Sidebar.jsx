@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   MessageSquare, 
+  MessagesSquare, // Imported for Conversation
   FolderOpen, 
   Settings, 
   BrainCircuit, 
@@ -34,9 +35,15 @@ const Sidebar = ({ collapsed, toggle }) => {
       
       {/* Navigation Links */}
       <nav className="flex flex-col gap-2">
-        <NavLink to="/" className={navClass} title={collapsed ? "Chat" : ""}>
+        <NavLink to="/" className={navClass} title={collapsed ? "Chat (Q&A)" : ""}>
           <MessageSquare className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span className="whitespace-nowrap overflow-hidden">Chat</span>}
+          {!collapsed && <span className="whitespace-nowrap overflow-hidden">Chat (Q&A)</span>}
+        </NavLink>
+
+        {/* NEW: Conversation Tab */}
+        <NavLink to="/conversation" className={navClass} title={collapsed ? "Conversation" : ""}>
+          <MessagesSquare className="w-5 h-5 flex-shrink-0" />
+          {!collapsed && <span className="whitespace-nowrap overflow-hidden">Conversation</span>}
         </NavLink>
         
         <NavLink to="/files" className={navClass} title={collapsed ? "File Manager" : ""}>
@@ -51,7 +58,7 @@ const Sidebar = ({ collapsed, toggle }) => {
 
         <NavLink to="/stats" className={navClass} title={collapsed ? "System Logs" : ""}>
           <Activity className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span className="whitespace-nowrap overflow-hidden">Chat History</span>}
+          {!collapsed && <span className="whitespace-nowrap overflow-hidden">History Logs</span>}
         </NavLink>
 
         <NavLink to="/config" className={navClass} title={collapsed ? "Configuration" : ""}>
@@ -71,7 +78,7 @@ const Sidebar = ({ collapsed, toggle }) => {
 
         {!collapsed && (
           <div className="text-xs text-slate-500 px-4 text-center whitespace-nowrap overflow-hidden">
-            v1.1.0 Connected :8050
+            v1.2.0 Connected :8050
           </div>
         )}
       </div>

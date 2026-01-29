@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { chatWithBot } from '../api';
+import { RAG_API_BASE } from '../api'; // Import base URL
 import { Send, Bot, User, Clock, ShieldCheck, Database, AlertTriangle, Zap } from 'lucide-react';
 
 const ChatPage = () => {
@@ -7,7 +7,7 @@ const ChatPage = () => {
     { role: 'assistant', text: "Hello! I'm ready to answer questions based on your uploaded documents." }
   ]);
   const [input, setInput] = useState("");
-  const [useCache, setUseCache] = useState(true); // New State
+  const [useCache, setUseCache] = useState(true); 
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
 
@@ -21,19 +21,74 @@ const ChatPage = () => {
 
     const userQuery = input;
     setInput("");
+    
+    // Add User Message
     setMessages(prev => [...prev, { role: 'user', text: userQuery }]);
+    
+    // Add Placeholder Assistant Message
+    setMessages(prev => [...prev, { 
+      role: 'assistant', 
+      text: "", // Will be filled by stream
+      sources: [], 
+      safety: null 
+    }]);
+
     setLoading(true);
 
     try {
-      // Pass useCache state to API
-      const res = await chatWithBot(userQuery, useCache);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: res.data.response,
-        sources: res.data.sources,
-        timings: res.data.timings,
-        safety: res.data.safety_check
-      }]);
+      const response = await fetch(`${RAG_API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userQuery, use_cache: useCache })
+      });
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value, { stream: true });
+        
+        // Split by newline to handle NDJSON
+        const lines = chunkValue.split('\n').filter(line => line.trim() !== '');
+
+        for (const line of lines) {
+          try {
+            const json = JSON.parse(line);
+
+            if (json.type === 'token') {
+              setMessages(prev => {
+                const lastMsg = prev[prev.length - 1];
+                if (lastMsg.role !== 'assistant') return prev; // Safety check
+                
+                return [
+                  ...prev.slice(0, -1),
+                  { ...lastMsg, text: lastMsg.text + json.content }
+                ];
+              });
+            } else if (json.type === 'meta') {
+               setMessages(prev => {
+                const lastMsg = prev[prev.length - 1];
+                return [
+                  ...prev.slice(0, -1),
+                  { 
+                    ...lastMsg, 
+                    sources: json.sources, 
+                    timings: json.timings,
+                    safety: json.safety 
+                  }
+                ];
+              });
+            }
+          } catch (e) {
+            console.error("Error parsing stream chunk", e);
+          }
+        }
+      }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', text: "Sorry, I encountered an error connecting to the server." }]);
     } finally {
@@ -55,12 +110,17 @@ const ChatPage = () => {
             {/* Bubble */}
             <div className={`max-w-2xl`}>
               <div className={`p-4 rounded-2xl shadow-sm text-sm leading-relaxed ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
-                {msg.text}
+                {/* Render Text (Whitespace preservation for formatting) */}
+                <span className="whitespace-pre-wrap">{msg.text}</span>
+                {/* Blinking Cursor for streaming */}
+                {loading && idx === messages.length - 1 && (
+                  <span className="inline-block w-1.5 h-4 ml-1 align-middle bg-slate-400 animate-pulse"></span>
+                )}
               </div>
 
-              {/* Metadata */}
-              {msg.role === 'assistant' && msg.sources && (
-                <div className="mt-2 space-y-2">
+              {/* Metadata (Only show when stream is done and meta is present) */}
+              {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
+                <div className="mt-2 space-y-2 fade-in">
                   <div className="flex flex-wrap gap-2">
                     {msg.sources.map((source, i) => (
                       <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-200 text-slate-600 text-xs rounded-full">
@@ -68,17 +128,20 @@ const ChatPage = () => {
                         {source}
                       </span>
                     ))}
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${msg.safety === 'PASSED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                       {msg.safety === 'PASSED' ? <ShieldCheck className="w-3 h-3"/> : <AlertTriangle className="w-3 h-3"/>}
-                       {msg.safety}
-                    </span>
+                    {msg.safety && (
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${msg.safety === 'PASSED' || msg.safety === 'PASSED_CACHE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {msg.safety === 'PASSED' || msg.safety === 'PASSED_CACHE' ? <ShieldCheck className="w-3 h-3"/> : <AlertTriangle className="w-3 h-3"/>}
+                        {msg.safety}
+                      </span>
+                    )}
                   </div>
                   
                   {msg.timings && (
                     <div className="text-xs text-slate-400 flex gap-4 mt-1 bg-slate-100 p-2 rounded w-fit">
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> Total: {msg.timings.total_sec}s</span>
-                      <span>LLM: {msg.timings.llm_generation_sec}s</span>
-                      <span>RAG: {msg.timings.retrieval_sec}s</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> Total: {msg.timings.total_sec.toFixed(2)}s</span>
+                      <span>LLM: {msg.timings.llm_generation_sec.toFixed(2)}s</span>
+                      <span>RAG: {msg.timings.retrieval_sec.toFixed(2)}s</span>
+                      <span>Rerank: {msg.timings.reranking_sec ? msg.timings.reranking_sec.toFixed(2) : '0.00'}s</span>
                     </div>
                   )}
                 </div>
@@ -86,19 +149,6 @@ const ChatPage = () => {
             </div>
           </div>
         ))}
-        {loading && (
-          <div className="flex gap-4">
-             {/* ... Loading Spinner ... */}
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-slate-600 animate-pulse" />
-            </div>
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1">
-              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
-              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100"></span>
-              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200"></span>
-            </div>
-          </div>
-        )}
         <div ref={bottomRef} />
       </div>
 

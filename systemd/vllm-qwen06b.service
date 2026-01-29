@@ -1,0 +1,31 @@
+[Unit]
+Description=vLLM Service - Qwen3-8B
+After=network.target
+
+[Service]
+Type=simple
+
+# 1. CHANGE THIS to your username (e.g., ubuntu, ec2-user, azureuser)
+User=root
+Group=root
+
+# 2. Set environment variables for the VENV and CUDA
+Environment="CUDA_VISIBLE_DEVICES=0"
+Environment="VIRTUAL_ENV=/home/jabali/vllm_testing/vllmvenv"
+Environment="PATH=/home/jabali/vllm_testing/vllmvenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+#Environment="HF_HOME=/home/jabali/.cache/huggingface"
+
+# 2. ExecStart (Ensure the \ characters are clean line breaks)
+ExecStart=/home/jabali/vllm_testing/vllmvenv/bin/vllm serve Qwen/Qwen3-0.6B --host 0.0.0.0 --port 8010 --gpu-memory-utilization 0.1 --max-model-len 4096 --trust-remote-code
+
+Restart=always
+RestartSec=5
+
+# 3. Logging
+# Make sure the directory /var/log/vllm exists and is writable by 'jabali'
+StandardOutput=append:/var/log/vllm/qwen06b.log
+StandardError=append:/var/log/vllm/qwen06b.log
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,25 @@
+[Unit]
+Description=vLLM Service - granite-embedding-278m
+After=network.target
+
+[Service]
+Type=simple
+
+User=root
+Group=root
+
+# 2. Set environment variables for the VENV and CUDA
+Environment="CUDA_VISIBLE_DEVICES=0"
+Environment="VIRTUAL_ENV=/home/jabali/vllm_testing/vllmvenv/bin/vllm"
+Environment="PATH=/home/jabali/vllm_testing/vllmvenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# 3. Point directly to the vllm binary inside the venv
+ExecStart=/home/jabali/vllm_testing/vllmvenv/bin/vllm serve ibm-granite/granite-embedding-278m-multilingual --trust-remote-code --port 8006 --host 0.0.0.0 --gpu-memory-utilization 0.1 --max-model-len 512 --task embed
+
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/vllm/granite-embedding-278m.log
+StandardError=append:/var/log/vllm/granite-embedding-278m.log
+
+[Install]
+WantedBy=multi-user.target
